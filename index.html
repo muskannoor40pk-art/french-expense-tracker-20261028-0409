@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Dépenses</title>
+    
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Mes Dépenses</h1>
+    
+    <div class="grid">
+        <div class="stat-card"><h3>Total</h3><p id="total-amount">0 €</p></div>
+        <div class="stat-card"><h3>Transactions</h3><p id="count-amount">0</p></div>
+    </div>
+
+    <div class="card">
+        <div class="chart-container" id="chart"></div>
+    </div>
+
+    <div class="card">
+        <form id="expense-form">
+            <input type="text" id="desc" placeholder="Description" required>
+            <input type="number" id="amount" placeholder="Montant" required>
+            <select id="category">
+                <option value="Alimentation">Alimentation</option>
+                <option value="Loyer">Loyer</option>
+                <option value="Transport">Transport</option>
+                <option value="Loisirs">Loisirs</option>
+            </select>
+            <button type="submit">Ajouter</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <table>
+            <thead><tr><th>Description</th><th>Catégorie</th><th>Montant</th><th>Action</th></tr></thead>
+            <tbody id="expense-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+
+    const form = document.getElementById('expense-form');
+    const list = document.getElementById('expense-list');
+    const totalEl = document.getElementById('total-amount');
+    const countEl = document.getElementById('count-amount');
+    const chart = document.getElementById('chart');
+
+    function updateUI() {
+        list.innerHTML = '';
+        let total = 0;
+        
+        expenses.forEach((ex, index) => {
+            total += parseFloat(ex.amount);
+            const row = `<tr>
+                <td>${ex.desc}</td>
+                <td>${ex.category}</td>
+                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(ex.amount)}</td>
+                <td><button class="delete-btn" onclick="deleteExpense(${index})">✕</button></td>
+            </tr>`;
+            list.innerHTML += row;
+        });
+
+        totalEl.textContent = new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(total);
+        countEl.textContent = expenses.length;
+        localStorage.setItem('expenses', JSON.stringify(expenses));
+        renderChart();
+    }
+
+    function renderChart() {
+        chart.innerHTML = '';
+        const cats = ['Alimentation', 'Loyer', 'Transport', 'Loisirs'];
+        const data = cats.map(c => expenses.filter(e => e.category === c).reduce((a, b) => a + parseFloat(b.amount), 0));
+        const max = Math.max(...data, 1);
+        
+        data.forEach((val, i) => {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.height = `${(val / max) * 100}%`;
+            bar.title = `${cats[i]}: ${val}€`;
+            chart.appendChild(bar);
+        });
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        expenses.push({
+            desc: document.getElementById('desc').value,
+            amount: document.getElementById('amount').value,
+            category: document.getElementById('category').value
+        });
+        form.reset();
+        updateUI();
+    });
+
+    function deleteExpense(i) {
+        expenses.splice(i, 1);
+        updateUI();
+    }
+
+    updateUI();
+</script>
+</body>
+</html>
